@@ -1,0 +1,401 @@
+%%writefile index.html
+<!DOCTYPE html>
+<html>
+<head>
+<title>2D Game Transformation Engine</title>
+
+<style>
+body{
+font-family:Arial;
+background:#f2f2f2;
+padding:20px;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+background:white;
+padding:25px;
+border-radius:15px;
+}
+
+input{
+padding:10px;
+margin:5px;
+width:100px;
+}
+
+button{
+padding:12px 20px;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:6px;
+}
+
+pre{
+background:#eeeeee;
+padding:15px;
+}
+
+canvas{
+width:100%;
+border:1px solid #ccc;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>2D Game Transformation Engine</h1>
+
+<h2>Inputs</h2>
+
+<label>Rotation:</label>
+<input id="angle" type="number" value="30">
+
+<label>Scale:</label>
+<input id="scale" type="number" value="1.5">
+
+<label>TX:</label>
+<input id="tx" type="number" value="2">
+
+<label>TY:</label>
+<input id="ty" type="number" value="1">
+
+<br><br>
+
+<button onclick="calculate()">Apply Transformation</button>
+
+<h2>Scaling Matrix</h2>
+<pre id="scaleMatrix"></pre>
+
+<h2>Rotation Matrix</h2>
+<pre id="rotationMatrix"></pre>
+
+<h2>Translation Matrix</h2>
+<pre id="translationMatrix"></pre>
+
+<h2>Total Matrix</h2>
+<pre id="totalMatrix"></pre>
+
+<h2>Triangle Coordinates</h2>
+<pre id="result"></pre>
+
+<h2>Graph</h2>
+
+<canvas id="canvas" width="800" height="500"></canvas>
+
+</div>
+
+
+<script>
+
+function multiply(A,B){
+
+let result=[];
+
+for(let i=0;i<A.length;i++){
+
+result[i]=[];
+
+for(let j=0;j<B[0].length;j++){
+
+let sum=0;
+
+for(let k=0;k<B.length;k++){
+
+sum=sum+A[i][k]*B[k][j];
+
+}
+
+result[i][j]=sum;
+
+}
+
+}
+
+return result;
+
+}
+
+
+function showMatrix(M){
+
+return M.map(function(row){
+
+return "[ "+row.map(function(x){
+
+return x.toFixed(3);
+
+}).join("   ")+" ]";
+
+}).join("\n");
+
+}
+
+
+function transform(M,p){
+
+return [
+
+M[0][0]*p[0]+M[0][1]*p[1]+M[0][2],
+
+M[1][0]*p[0]+M[1][1]*p[1]+M[1][2]
+
+];
+
+}
+
+
+function calculate(){
+
+let angle=parseFloat(document.getElementById("angle").value);
+
+let scale=parseFloat(document.getElementById("scale").value);
+
+let tx=parseFloat(document.getElementById("tx").value);
+
+let ty=parseFloat(document.getElementById("ty").value);
+
+
+let r=angle*Math.PI/180;
+
+let c=Math.cos(r);
+
+let s=Math.sin(r);
+
+
+let S=[
+
+[scale,0,0],
+
+[0,scale,0],
+
+[0,0,1]
+
+];
+
+
+let R=[
+
+[c,-s,0],
+
+[s,c,0],
+
+[0,0,1]
+
+];
+
+
+let T=[
+
+[1,0,tx],
+
+[0,1,ty],
+
+[0,0,1]
+
+];
+
+
+let RS=multiply(R,S);
+
+let TOTAL=multiply(T,RS);
+
+
+document.getElementById("scaleMatrix").textContent=
+
+showMatrix(S);
+
+
+document.getElementById("rotationMatrix").textContent=
+
+showMatrix(R);
+
+
+document.getElementById("translationMatrix").textContent=
+
+showMatrix(T);
+
+
+document.getElementById("totalMatrix").textContent=
+
+showMatrix(TOTAL);
+
+
+let A=[0,0];
+
+let B=[2,0];
+
+let C=[1,2];
+
+
+let A2=transform(TOTAL,A);
+
+let B2=transform(TOTAL,B);
+
+let C2=transform(TOTAL,C);
+
+
+document.getElementById("result").textContent=
+
+"Original Triangle\n"+
+
+"A = (0,0)\n"+
+
+"B = (2,0)\n"+
+
+"C = (1,2)\n\n"+
+
+"Transformed Triangle\n"+
+
+"A' = ("+A2[0].toFixed(3)+","+A2[1].toFixed(3)+")\n"+
+
+"B' = ("+B2[0].toFixed(3)+","+B2[1].toFixed(3)+")\n"+
+
+"C' = ("+C2[0].toFixed(3)+","+C2[1].toFixed(3)+")";
+
+
+draw([A,B,C],[A2,B2,C2]);
+
+}
+
+
+function draw(original,transformed){
+
+let canvas=document.getElementById("canvas");
+
+let ctx=canvas.getContext("2d");
+
+ctx.clearRect(0,0,800,500);
+
+
+let ox=400;
+
+let oy=300;
+
+let unit=60;
+
+
+function convert(p){
+
+return [
+
+ox+p[0]*unit,
+
+oy-p[1]*unit
+
+];
+
+}
+
+
+ctx.strokeStyle="#eeeeee";
+
+
+for(let x=0;x<800;x=x+30){
+
+ctx.beginPath();
+
+ctx.moveTo(x,0);
+
+ctx.lineTo(x,500);
+
+ctx.stroke();
+
+}
+
+
+for(let y=0;y<500;y=y+30){
+
+ctx.beginPath();
+
+ctx.moveTo(0,y);
+
+ctx.lineTo(800,y);
+
+ctx.stroke();
+
+}
+
+
+ctx.strokeStyle="#555";
+
+ctx.beginPath();
+
+ctx.moveTo(0,oy);
+
+ctx.lineTo(800,oy);
+
+ctx.stroke();
+
+
+ctx.beginPath();
+
+ctx.moveTo(ox,0);
+
+ctx.lineTo(ox,500);
+
+ctx.stroke();
+
+
+function triangle(points,dashed){
+
+let p1=convert(points[0]);
+
+let p2=convert(points[1]);
+
+let p3=convert(points[2]);
+
+
+ctx.beginPath();
+
+ctx.moveTo(p1[0],p1[1]);
+
+ctx.lineTo(p2[0],p2[1]);
+
+ctx.lineTo(p3[0],p3[1]);
+
+ctx.closePath();
+
+
+ctx.setLineDash(dashed?[8,6]:[]);
+
+ctx.strokeStyle=dashed?"#777":"#2563eb";
+
+ctx.lineWidth=4;
+
+ctx.stroke();
+
+ctx.setLineDash([]);
+
+}
+
+
+triangle(original,true);
+
+triangle(transformed,false);
+
+
+ctx.font="16px Arial";
+
+ctx.fillStyle="#555";
+
+ctx.fillText("Dashed = Original",20,30);
+
+ctx.fillStyle="#2563eb";
+
+ctx.fillText("Blue = Transformed",20,55);
+
+}
+
+
+calculate();
+
+</script>
+
+</body>
+</html>
